@@ -105,12 +105,6 @@ class Board:
                 raise TypeError('Неправильно указаны координаты')
         direction = input('Корабль ставим вертикально? Y/N  ').lower()  # Проверяем направление
         direction = any([direction == x for x in ['y', 'да', '1', 'н']])
-        # for item in ['y', 'да', '1', 'н']:  # Старый способ
-        #     if direction == item:
-        #         direction = True
-        #         break
-        #     else:
-        #         direction = False
         ship = Ship(head_dot, length, direction)
 
         try:  # Пробуем разместить корабль по указанным координатам
@@ -130,8 +124,6 @@ class Board:
             for cell in ship.dots():
                 cell.is_free = False
                 cell.char = '■'
-            for cell in self.contour(ship):
-                cell.is_free = False
             self._fleet_list.append(ship)
             self._ships_count += 1
 
@@ -151,3 +143,5 @@ class Board:
                         contour_list.append(Dot(x, y))  # Собираем точки без дублей и клеток корабля
 
         return contour_list
+
+
