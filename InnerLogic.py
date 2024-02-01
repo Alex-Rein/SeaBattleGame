@@ -5,7 +5,7 @@ from Exceptions import *
 
 
 class Dot:
-    _is_busy = False
+    _is_free = True
     _char = 'O'
 
     def __init__(self, x, y):
@@ -19,12 +19,12 @@ class Dot:
         return f'{self._x}, {self._y}'
 
     @property
-    def is_busy(self):
-        return self._is_busy
+    def is_free(self):
+        return self._is_free
 
-    @is_busy.setter
-    def is_busy(self, value=bool):
-        self._is_busy = value
+    @is_free.setter
+    def is_free(self, value=bool):
+        self._is_free = value
 
     @property
     def char(self):
@@ -32,8 +32,10 @@ class Dot:
 
     @char.setter
     def char(self, value=str):
-        if value == any(['X', 'T', 'O', '■']):
+        if any([value == x for x in ['X', 'T', 'O', '■']]):
             self._char = value
+        # if value == any(['X', 'T', 'O', '■']):
+        #     self._char = value
 
     @property
     def vals(self):
@@ -58,8 +60,10 @@ class Ship:
                 dot_list.append(Dot(self._head_dot.vals[0] + i, self._head_dot.vals[1]))
         return dot_list
 
-    def damage(self):
-        self._life -= 1
+    def damage(self, dot):
+        if dot.char == '■':
+            dot.char = 'X'
+            self._life -= 1
 
     def get_head_dot(self):
         return self._head_dot
@@ -75,9 +79,16 @@ class Board:
     _ships_count = 0
 
     def __init__(self):
+        x, y = 0, 0
         for row in self._board_status:
-            for i in range(6):
-                row.append(Dot(i, row))
+            y += 1
+            for col in range(6):
+                x += 1
+                row.append(Dot(x, y))
+
+    def get_dot(self, dot):
+        """Возвращаем точку (Dot) с игровой доски по координатам входной точки (Dot)"""
+        return self._board_status[dot.vals[1] - 1][dot.vals[0] - 1]
 
     def add_ship(self, length):
         print(f'Ставим корабль длины {length}')  # Собираем данные для создания корабля
@@ -92,32 +103,51 @@ class Board:
                     raise BoardOutException(Dot(int(coords[0]), int(coords[1])))
             else:
                 raise TypeError('Неправильно указаны координаты')
-        direction = input('Корабль ставим вертикально? Y/N  ').lower()
-        direction = True if direction == any(['y', 'да', '1']) else False
+        direction = input('Корабль ставим вертикально? Y/N  ').lower()  # Проверяем направление
+        direction = any([direction == x for x in ['y', 'да', '1', 'н']])
+        # for item in ['y', 'да', '1', 'н']:  # Старый способ
+        #     if direction == item:
+        #         direction = True
+        #         break
+        #     else:
+        #         direction = False
         ship = Ship(head_dot, length, direction)
 
         try:  # Пробуем разместить корабль по указанным координатам
-            for cell in ship.dots():
-                pass  # НУЖЕН МЕТОД ДЛЯ ОБВОДКИ CONTOUR
+            place_approved = True
+            for cell in ship.dots():  # Проверка доступности точек корабля на доске
+                if place_approved:
+                    place_approved = self.get_dot(cell).is_free
+            for cell in self.contour(ship):  # Проверка доступности точек вокруг корабля
+                if place_approved:
+                    place_approved = self.get_dot(cell).is_free
+            if not place_approved:
+                raise ShipPlacementError
         except ShipPlacementError:
-            return
+            print('Атата однако')  # ПОПРАВИТЬ !!!
         else:
+            # Добавляем корабль на доску
+            for cell in ship.dots():
+                cell.is_free = False
+                cell.char = '■'
+            for cell in self.contour(ship):
+                cell.is_free = False
             self._fleet_list.append(ship)
             self._ships_count += 1
 
-    def contour(self, ship):
+    @staticmethod
+    def contour(ship):
+        """Возвращает список Dot объектов вокруг корабля (не с доски)"""
         contour_list = []
-        for cell in ship.dots():
-            x_y = cell.vals  # координаты текущей точки сокращенно
-            for y in range(x_y[1] - 1, x_y[1] + 2):  # Обходим все соседние точки
+        for cell in ship.dots():  # Обходим все точки принадлежащие кораблю
+            vals = cell.vals  # координаты текущей точки сокращенно
+            for y in range(vals[1] - 1, vals[1] + 2):  # Обходим все соседние точки
                 if y not in range(1, 7):
                     continue
-
-                for x in range(x_y[0] - 1, x_y[0] + 2):
+                for x in range(vals[0] - 1, vals[0] + 2):
                     if x not in range(1, 7):
                         continue
+                    if Dot(x, y) not in contour_list and Dot(x, y) not in ship.dots():
+                        contour_list.append(Dot(x, y))  # Собираем точки без дублей и клеток корабля
 
-                    if x_y != (x, y):   # ПЕРЕДЕЛАТЬ КОД, ДУБЛИРУЮТСЯ ТОЧКИ !!!
-                        contour_list.append(Dot(x, y))
         return contour_list
-
