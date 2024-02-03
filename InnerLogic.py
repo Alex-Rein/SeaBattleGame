@@ -1,6 +1,5 @@
 # Внутренняя логика игры — корабли,
 # игровая доска и вся логика связанная с ней. ■
-import random
 
 from Exceptions import *
 
@@ -60,15 +59,7 @@ class Ship:
         return dot_list
 
     def damage(self, dot):
-        if dot.char == '■':
-            dot.char = 'X'
-            self._life -= 1
-
-    def get_head_dot(self):  # НУЖНО ЛИ?
-        return self._head_dot
-
-    def get_direction(self):  # НУЖНО ЛИ?
-        return self._direction
+        self._life -= 1
 
 
 class Board:
@@ -166,7 +157,7 @@ class Board:
 
         return contour_list
 
-    def show_board(self):
+    def show(self):
         print('   1 2 3 4 5 6')
         i = 1
         for row in self._board_status:
@@ -184,46 +175,16 @@ class Board:
         """Возвращает True если точка (Dot) за пределами поля"""
         return False if dot.vals[0] in range(1, 7) and dot.vals[1] in range(1, 7) else True
 
-    def shot(self):
-        coords = None
-        dot = None
-        print('Координаты указываем через пробел.')
-        while True:  # Цикл для проверки ввода координат
-            if not self.is_hidden():
-                coords = input('Куда стреляем? ').split()
-            try:
-                if coords:
-                    if coords[0].isdigit() and coords[1].isdigit():
-                        dot = Dot(*list(map(int, coords)))
-                        if Board.out(dot):  # Проверка диапазона
-                            raise BoardOutException(dot)
-                    else:
-                        raise TypeError()
-                else:
-                    x = random.randrange(1, 7)
-                    y = random.randrange(1, 7)
-                    dot = Dot(x, y)
-            except IndexError:
-                print('Неправильно указаны координаты')
-                continue
-            except TypeError:
-                print('Неправильно указаны координаты')
-                continue
-            except BoardOutException:
-                continue
+    def shot(self, dot):
+        if Board.out(dot):  # Проверка диапазона
+            raise BoardOutException(dot)
 
-            char = self.get_dot(dot).char
-            try:
-                if char == 'O':
-                    self.get_dot(dot).char = 'T'
-                    break
-                elif char == '■':
-                    self.get_dot(dot).char = 'X'
-                    if not self.is_hidden():
-                        print('Йо-хо-хо, мы в кого то попали! Заряжай еще раз!')
-                else:  # Подразумевается что это char == 'T' or char == 'X'
-                    raise DotIsShottedError(dot)
-            except DotIsShottedError:
-                if not self.is_hidden():
-                    print('Оказалось что сюда уже стреляли! Надо бы стрельнуть куда то еще!')
-                    continue
+        char = self.get_dot(dot).char  # Проверка символа куда стреляем
+        if char == 'O':
+            self.get_dot(dot).char = 'T'
+        elif char == '■':
+            self.get_dot(dot).char = 'X'
+            if not self.is_hidden():
+                return True
+        else:  # Подразумевается что это char == 'T' or char == 'X'
+            raise DotIsShottedError(dot)
