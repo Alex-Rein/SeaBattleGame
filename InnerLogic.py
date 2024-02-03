@@ -35,6 +35,7 @@ class Dot:
     def char(self, value=str):
         if any([value == x for x in ['X', 'T', 'O', '■']]):
             self._char = value
+
     @property
     def vals(self):
         """Вывод координат точки в виде кортежа (x, y)"""
@@ -92,49 +93,63 @@ class Board:
         return self._board_status[dot.vals[1] - 1][dot.vals[0] - 1]
 
     def add_ship(self, length):
-        while True:  # Цикл для проверки ввода координат
-            print(f'Ставим корабль длины {length}')  # Собираем данные для создания корабля
-            coords = input('Укажите координаты точки размещения через пробел: ').split()
-            try:
-                if coords[0].isdigit() and coords[1].isdigit():
-                    head_dot = Dot(*list(map(int, coords)))
-                    if Board.out(head_dot):  # Проверка диапазона
-                        raise BoardOutException(head_dot)
+        while True:  # Общий цикл для установки корабля
+            while True:  # Цикл для проверки ввода координат
+                print(f'Ставим корабль длины {length}')  # Собираем данные для создания корабля
+                coords = input('Укажите координаты точки размещения через пробел: ').split()
+                head_dot = None
+                try:
+                    if coords[0].isdigit() and coords[1].isdigit():
+                        head_dot = Dot(*list(map(int, coords)))
+                        if Board.out(head_dot):  # Проверка диапазона
+                            raise BoardOutException(head_dot)
+                        else:
+                            break
                     else:
-                        break
-                else:
-                    raise TypeError()
-            except IndexError:
-                print('Неправильно указаны координаты')
-                continue
-            except TypeError:
-                print('Неправильно указаны координаты')
-                continue
-            except BoardOutException:
-                continue
-        direction = input('Корабль ставим вертикально? Y/N  ').lower()  # Проверяем направление
-        direction = any([direction == x for x in ['y', 'да', '1', 'н']])
-        ship = Ship(head_dot, length, direction)
+                        raise TypeError
+                except IndexError:
+                    print('Неправильно указаны координаты')
+                    continue
+                except TypeError:
+                    print('Неправильно указаны координаты')
+                    continue
+                except BoardOutException as e:
+                    print(e)
+                    continue
 
-        try:  # Пробуем разместить корабль по указанным координатам
-            place_approved = True
-            for cell in ship.dots():  # Проверка доступности точек корабля на доске
-                if place_approved:
-                    place_approved = self.get_dot(cell).is_free
-            for cell in self.contour(ship):  # Проверка доступности точек вокруг корабля
-                if place_approved:
-                    place_approved = self.get_dot(cell).is_free
-            if not place_approved:
-                raise ShipPlacementError
-        except ShipPlacementError:
-            print('Атата однако')  # ПОПРАВИТЬ !!!
-        else:
-            # Добавляем корабль на доску
-            for cell in ship.dots():
-                self.get_dot(cell).is_free = False
-                self.get_dot(cell).char = '■'
-            self._fleet_list.append(ship)
-            self._ships_count += 1
+            direction = input('Корабль ставим вертикально? Y/N  ').lower()  # Проверяем направление упрощенно :)
+            direction = any([direction == x for x in ['y', 'да', '1', 'н']])
+            ship = Ship(head_dot, length, direction)
+
+            try:  # Пробуем разместить корабль по указанным координатам
+                place_approved = True
+                for cell in ship.dots():  # Проверка доступности точек корабля на доске
+                    if self.out(cell):
+                        raise BoardOutException(cell)
+                    if place_approved:
+                        place_approved = self.get_dot(cell).is_free
+                for cell in self.contour(ship):  # Проверка доступности точек вокруг корабля
+                    if self.out(cell):
+                        raise BoardOutException(cell)
+                    if place_approved:
+                        place_approved = self.get_dot(cell).is_free
+                if not place_approved:
+                    raise ShipPlacementError
+            except BoardOutException as e:
+                print('Размещение вышло за границы доски')
+                print(e)
+                continue
+            except ShipPlacementError:
+                print('Тут нельзя поставить. Что то уже стоит рядом.')
+                continue
+            else:
+                # Добавляем корабль на доску
+                for cell in ship.dots():
+                    self.get_dot(cell).is_free = False
+                    self.get_dot(cell).char = '■'
+                self._fleet_list.append(ship)
+                self._ships_count += 1
+                break
 
     @staticmethod
     def contour(ship):
@@ -163,7 +178,6 @@ class Board:
                 else:
                     print(f' {item.char}', end='')
             print()
-
 
     @staticmethod
     def out(dot):
