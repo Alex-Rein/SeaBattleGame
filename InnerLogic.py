@@ -34,9 +34,6 @@ class Dot:
     def char(self, value=str):
         if any([value == x for x in ['X', 'T', 'O', '■']]):
             self._char = value
-        # if value == any(['X', 'T', 'O', '■']):
-        #     self._char = value
-
     @property
     def vals(self):
         """Вывод координат точки в виде кортежа (x, y)"""
@@ -65,26 +62,29 @@ class Ship:
             dot.char = 'X'
             self._life -= 1
 
-    def get_head_dot(self):
+    def get_head_dot(self):  # НУЖНО ЛИ?
         return self._head_dot
 
-    def get_direction(self):
+    def get_direction(self):  # НУЖНО ЛИ?
         return self._direction
 
 
 class Board:
     _board_status = [[], [], [], [], [], []]
     _fleet_list = []
-    _hid = True
     _ships_count = 0
 
-    def __init__(self):
+    def __init__(self, hidden=False):
+        self._hid = hidden
         x, y = 0, 0
         for row in self._board_status:
             y += 1
             for col in range(6):
                 x += 1
                 row.append(Dot(x, y))
+
+    def is_hidden(self):
+        return self._hid
 
     def get_dot(self, dot):
         """Возвращаем точку (Dot) с игровой доски по координатам входной точки (Dot)"""
@@ -95,12 +95,12 @@ class Board:
         while True:  # Цикл для проверки ввода координат
             coords = input('Укажите координаты точки размещения через пробел: ').split()
             if coords[0].isdigit() and coords[1].isdigit():
-                coords = list(map(int, coords))
-                if coords[0] in range(1, 7) and coords[1] in range(1, 7):  # Проверка диапазона
+                dot = Dot(*list(map(int, coords)))
+                if Board.out(dot):  # Проверка диапазона
+                    raise BoardOutException(dot)
+                else:
                     head_dot = Dot(int(coords[0]), int(coords[1]))
                     break
-                else:
-                    raise BoardOutException(Dot(int(coords[0]), int(coords[1])))
             else:
                 raise TypeError('Неправильно указаны координаты')
         direction = input('Корабль ставим вертикально? Y/N  ').lower()  # Проверяем направление
@@ -122,8 +122,8 @@ class Board:
         else:
             # Добавляем корабль на доску
             for cell in ship.dots():
-                cell.is_free = False
-                cell.char = '■'
+                self.get_dot(cell).is_free = False
+                self.get_dot(cell).char = '■'
             self._fleet_list.append(ship)
             self._ships_count += 1
 
@@ -134,14 +134,33 @@ class Board:
         for cell in ship.dots():  # Обходим все точки принадлежащие кораблю
             vals = cell.vals  # координаты текущей точки сокращенно
             for y in range(vals[1] - 1, vals[1] + 2):  # Обходим все соседние точки
-                if y not in range(1, 7):
-                    continue
                 for x in range(vals[0] - 1, vals[0] + 2):
-                    if x not in range(1, 7):
+                    if Board.out(Dot(x, y)):
                         continue
                     if Dot(x, y) not in contour_list and Dot(x, y) not in ship.dots():
                         contour_list.append(Dot(x, y))  # Собираем точки без дублей и клеток корабля
 
         return contour_list
 
+    def show_board(self):
+        print('   1 2 3 4 5 6')
+        i = 1
+        for row in self._board_status:
+            print(i, end=' ')
+            i += 1
+            for item in row:
+                if item.char == '■' and self.is_hidden():
+                    print(' O', end='')
+                else:
+                    print(f' {item.char}', end='')
+            print()
+
+
+    @staticmethod
+    def out(dot):
+        """Возвращает True если точка (Dot) за пределами поля"""
+        return False if dot.vals[0] in range(1, 7) and dot.vals[1] in range(1, 7) else True
+
+    def shot(self):
+        pass
 
