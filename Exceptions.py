@@ -8,5 +8,14 @@ class BoardOutException(Exception):
 
 
 class ShipPlacementError(Exception):
-    def __init__(self, msg='невозможно поставить'):
+    def __init__(self, msg='Невозможно поставить'):
         self.msg = msg
+
+
+class DotIsShottedError(Exception):
+    def __init__(self, dot, msg='уже стреляли'):
+        self.dot = dot
+        self.msg = msg
+
+    def __str__(self):
+        return f'В эту точку -> ({self.dot}) {self.msg}'

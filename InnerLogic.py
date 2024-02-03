@@ -1,5 +1,6 @@
 # Внутренняя логика игры — корабли,
 # игровая доска и вся логика связанная с ней. ■
+import random
 
 from Exceptions import *
 
@@ -91,18 +92,26 @@ class Board:
         return self._board_status[dot.vals[1] - 1][dot.vals[0] - 1]
 
     def add_ship(self, length):
-        print(f'Ставим корабль длины {length}')  # Собираем данные для создания корабля
         while True:  # Цикл для проверки ввода координат
+            print(f'Ставим корабль длины {length}')  # Собираем данные для создания корабля
             coords = input('Укажите координаты точки размещения через пробел: ').split()
-            if coords[0].isdigit() and coords[1].isdigit():
-                dot = Dot(*list(map(int, coords)))
-                if Board.out(dot):  # Проверка диапазона
-                    raise BoardOutException(dot)
+            try:
+                if coords[0].isdigit() and coords[1].isdigit():
+                    head_dot = Dot(*list(map(int, coords)))
+                    if Board.out(head_dot):  # Проверка диапазона
+                        raise BoardOutException(head_dot)
+                    else:
+                        break
                 else:
-                    head_dot = Dot(int(coords[0]), int(coords[1]))
-                    break
-            else:
-                raise TypeError('Неправильно указаны координаты')
+                    raise TypeError()
+            except IndexError:
+                print('Неправильно указаны координаты')
+                continue
+            except TypeError:
+                print('Неправильно указаны координаты')
+                continue
+            except BoardOutException:
+                continue
         direction = input('Корабль ставим вертикально? Y/N  ').lower()  # Проверяем направление
         direction = any([direction == x for x in ['y', 'да', '1', 'н']])
         ship = Ship(head_dot, length, direction)
@@ -162,5 +171,45 @@ class Board:
         return False if dot.vals[0] in range(1, 7) and dot.vals[1] in range(1, 7) else True
 
     def shot(self):
-        pass
+        coords = None
+        dot = None
+        print('Координаты указываем через пробел.')
+        while True:  # Цикл для проверки ввода координат
+            if not self.is_hidden():
+                coords = input('Куда стреляем? ').split()
+            try:
+                if coords:
+                    if coords[0].isdigit() and coords[1].isdigit():
+                        dot = Dot(*list(map(int, coords)))
+                        if Board.out(dot):  # Проверка диапазона
+                            raise BoardOutException(dot)
+                    else:
+                        raise TypeError()
+                else:
+                    x = random.randrange(1, 7)
+                    y = random.randrange(1, 7)
+                    dot = Dot(x, y)
+            except IndexError:
+                print('Неправильно указаны координаты')
+                continue
+            except TypeError:
+                print('Неправильно указаны координаты')
+                continue
+            except BoardOutException:
+                continue
 
+            char = self.get_dot(dot).char
+            try:
+                if char == 'O':
+                    self.get_dot(dot).char = 'T'
+                    break
+                elif char == '■':
+                    self.get_dot(dot).char = 'X'
+                    if not self.is_hidden():
+                        print('Йо-хо-хо, мы в кого то попали! Заряжай еще раз!')
+                else:  # Подразумевается что это char == 'T' or char == 'X'
+                    raise DotIsShottedError(dot)
+            except DotIsShottedError:
+                if not self.is_hidden():
+                    print('Оказалось что сюда уже стреляли! Надо бы стрельнуть куда то еще!')
+                    continue
