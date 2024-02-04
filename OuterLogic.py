@@ -21,6 +21,12 @@ class Player:
             try:
                 if self.enemy_board.shot(dot):
                     print('Попал! Стреляем еще раз.')
+                    ship = self.enemy_board.get_ship(dot)
+                    if self.enemy_board.damage_ship(ship):
+                        print('Корабль противника уничтожен!')
+                        for dot in self.enemy_board.contour(ship):
+                            self.enemy_board.get_dot(dot).char = 'T'
+                        self.enemy_board.fleet_list.remove(ship)
                     add_move = True
             except TypeError:
                 print('Что то пошло не так в данных выстрела')
@@ -141,24 +147,31 @@ class Game:
     def loop(self):
         print('Доска игрока')
         self.user_board.show()
-        while True:
-            print('Доска противника')
-            print('Ходит Игрок!')
-            while True:
+        not_win = True
+        while not_win:
+            while self.ai_board.ships_count:
+                print()
+                print('Доска противника')
                 self.ai_board.show()
+                print('Ходит Игрок!')
                 if not self.user.move():
                     break
             if self.win_check(self.user):
                 Game.winner('Игрок')
+                not_win = False
                 break
+
             print('Ходит Компудахтер!')
-            while True:
+            while self.user_board.ships_count:
                 if not self.ai.move():
                     break
-            print('Доска игрока')
-            self.user_board.show()
             if self.win_check(self.ai):
                 Game.winner('Компудахтер')
+                not_win = False
+                break
+            else:
+                print('Доска игрока')
+                self.user_board.show()
 
     def start(self):
         self.greet()
@@ -168,18 +181,23 @@ class Game:
 
     @staticmethod
     def win_check(player):
-        for ship in player.enemy_board.fleet_list:
-            life = 0
-            for cell in ship.dots():
-                if cell.char == '■':
-                    life += 1
-            ship.life = life
-            if ship.life == 0:
-                player.enemy_board.fleet_list.remove(ship)
-                player.enemy_board.ships_count -= 1
-        if not player.enemy_board.ships_count:
+        if player.enemy_board.ships_count == 0:
             return True
+        # for ship in player.enemy_board.fleet_list:
+        #     life = 0
+        #     for cell in ship.dots():
+        #         if cell.char == '■':
+        #             life += 1
+        #     ship.life = life
+        #     if ship.life == 0:
+        #         player.enemy_board.fleet_list.remove(ship)
+        #         player.enemy_board.ships_count -= 1
+        # if not player.enemy_board.ships_count:
+        #     return True
 
     @staticmethod
     def winner(player):
         print(f'{player} победил!')
+
+
+# Доделать логику уничтожения кораблей и контура после потопления !!!

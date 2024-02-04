@@ -52,7 +52,7 @@ class Ship:
 
     @life.setter
     def life(self, value):
-        if value is type(int):
+        if type(value) is int:
             self._life = value
 
     def dots(self):
@@ -246,3 +246,14 @@ class Board:
             return True
         else:  # Подразумевается что это char == 'T' or char == 'X'
             raise DotIsShottedError()
+
+    def get_ship(self, dot):
+        for ship in self.fleet_list:
+            for cell in ship.dots():
+                if cell == dot:
+                    return ship
+
+    def damage_ship(self, ship):
+        ship.life -= 1
+        if ship.life == 0:
+            return True
