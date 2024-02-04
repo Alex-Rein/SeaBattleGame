@@ -16,9 +16,6 @@ class Dot:
     def __eq__(self, other):
         return self._x == other.vals[0] and self._y == other.vals[1]
 
-    def __str__(self):
-        return f'{self._x}, {self._y}'
-
     @property
     def is_free(self):
         return self._is_free
@@ -49,6 +46,15 @@ class Ship:
         self._direction = direction
         self._life = length
 
+    @property
+    def life(self):
+        return self._life
+
+    @life.setter
+    def life(self, value):
+        if value is type(int):
+            self._life = value
+
     def dots(self):
         """Возвращает список всех точек (Dot) корабля"""
         dot_list = [self._head_dot]
@@ -59,30 +65,36 @@ class Ship:
                 dot_list.append(Dot(self._head_dot.vals[0] + i, self._head_dot.vals[1]))
         return dot_list
 
-    def damage(self, dot):
-        self._life -= 1
-
 
 class Board:
     def __init__(self, hidden=False):
         """Для компьютерного игрока нужно передать bool значение True"""
-        self.board_status = [[], [], [], [], [], []]
+        self._board_status = [[], [], [], [], [], []]
         self.fleet_list = []
-        self.ships_count = 0
+        self._ships_count = 0
         self._hid = hidden
         x, y = 0, 0
-        for row in self.board_status:
+        for row in self._board_status:
             y += 1
             for col in range(6):
                 x += 1
                 row.append(Dot(x, y))
+
+    @property
+    def ships_count(self):
+        return self._ships_count
+
+    @ships_count.setter
+    def ships_count(self, value):
+        if type(value) is int:
+            self._ships_count = value
 
     def is_hidden(self):
         return self._hid
 
     def get_dot(self, dot):
         """Возвращаем точку (Dot) с игровой доски по координатам входной точки (Dot)"""
-        return self.board_status[dot.vals[1] - 1][dot.vals[0] - 1]
+        return self._board_status[dot.vals[1] - 1][dot.vals[0] - 1]
 
     def add_ship(self, head_dot, length, direction):
         """Добавляем корабль на доску с заранее заданными параметрами. Возвращает True при успешной установке."""
@@ -93,16 +105,15 @@ class Board:
                 place_approved = True
                 for cell in ship.dots():  # Проверка доступности точек корабля на доске
                     if self.out(cell):
-                        raise BoardOutException(cell)
+                        raise BoardOutException()
                     if place_approved:
                         place_approved = self.get_dot(cell).is_free
                 for cell in self.contour(ship):  # Проверка доступности точек вокруг корабля
                     if self.out(cell):
-                        raise BoardOutException(cell)
+                        raise BoardOutException()
                     if place_approved:
                         place_approved = self.get_dot(cell).is_free
                 if not place_approved:
-                    # raise ShipPlacementError('Тут нельзя поставить. Что то уже стоит рядом.')
                     raise ShipPlacementError()
             except BoardOutException as e:
                 # print(e)
@@ -134,7 +145,7 @@ class Board:
                 if coords[0].isdigit() and coords[1].isdigit():
                     head_dot = Dot(*list(map(int, coords)))
                     if Board.out(head_dot):  # Проверка диапазона
-                        raise BoardOutException(head_dot)
+                        raise BoardOutException()
                     else:
                         break
                 else:
@@ -162,12 +173,12 @@ class Board:
             place_approved = True
             for cell in ship.dots():  # Проверка доступности точек корабля на доске
                 if self.out(cell):
-                    raise BoardOutException(cell)
+                    raise BoardOutException()
                 if place_approved:
                     place_approved = self.get_dot(cell).is_free
             for cell in self.contour(ship):  # Проверка доступности точек вокруг корабля
                 if self.out(cell):
-                    raise BoardOutException(cell)
+                    raise BoardOutException()
                 if place_approved:
                     place_approved = self.get_dot(cell).is_free
             if not place_approved:
@@ -204,9 +215,10 @@ class Board:
         return contour_list
 
     def show(self):
+        """Показывает доску в зависимости от параметра hidden"""
         print('   1 2 3 4 5 6')
         i = 1
-        for row in self.board_status:
+        for row in self._board_status:
             print(i, end=' ')
             i += 1
             for item in row:
@@ -215,6 +227,7 @@ class Board:
                 else:
                     print(f' {item.char}', end='')
             print()
+        print()
 
     @staticmethod
     def out(dot):
@@ -223,14 +236,13 @@ class Board:
 
     def shot(self, dot):
         if Board.out(dot):  # Проверка диапазона
-            raise BoardOutException(dot)
+            raise BoardOutException()
 
         char = self.get_dot(dot).char  # Проверка символа куда стреляем
         if char == 'O':
             self.get_dot(dot).char = 'T'
         elif char == '■':
             self.get_dot(dot).char = 'X'
-            if not self.is_hidden():
-                return True
+            return True
         else:  # Подразумевается что это char == 'T' or char == 'X'
-            raise DotIsShottedError(dot)
+            raise DotIsShottedError()

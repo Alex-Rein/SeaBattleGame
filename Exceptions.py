@@ -1,10 +1,9 @@
 class BoardOutException(Exception):
-    def __init__(self, dot, msg='находится вне игрового поля'):
-        self.dot = dot
+    def __init__(self, msg='Точка находится вне игрового поля'):
         self.msg = msg
 
     def __str__(self):
-        return f'Точка ({self.dot}) -> {self.msg}'
+        return self.msg
 
 
 class ShipPlacementError(Exception):
@@ -16,9 +15,8 @@ class ShipPlacementError(Exception):
 
 
 class DotIsShottedError(Exception):
-    def __init__(self, dot, msg='уже стреляли'):
-        self.dot = dot
+    def __init__(self,  msg='В эту точку уже стреляли'):
         self.msg = msg
 
     def __str__(self):
-        return f'В эту точку -> ({self.dot}) {self.msg}'
+        return self.msg
