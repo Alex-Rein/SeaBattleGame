@@ -14,7 +14,8 @@ class Player:
     def ask(self):
         pass
 
-    def move(self):
+    def move(self, mode=True):
+        """Передать параметр bool = False для отключение сообщений об ошибках выстрелов для компьютера"""
         add_move = False
         while True:
             dot = self.ask()
@@ -26,16 +27,20 @@ class Player:
                         print('Корабль противника уничтожен!')
                         for dot in self.enemy_board.contour(ship):
                             self.enemy_board.get_dot(dot).char = 'T'
+                        self.enemy_board.ships_count -= 1
                         self.enemy_board.fleet_list.remove(ship)
                     add_move = True
             except TypeError:
                 print('Что то пошло не так в данных выстрела')
                 continue
             except BoardOutException as e:
-                print(e)
+                if mode:
+                    print(e)
                 continue
             except DotIsShottedError as e:
-                print(e)
+                if mode:
+                    print(e)
+                continue
             else:
                 break
         return add_move
@@ -77,11 +82,12 @@ class Game:
     _ship_size_list = [3, 2, 2, 1, 1, 1, 1]
     # _ship_size_list = [1, 1, 1, 1, 2, 2, 3]
 
-    def __init__(self, user, user_board, ai, ai_board):
-        self.user = user
-        self.user_board = user_board
-        self.ai = ai
-        self.ai_board = ai_board
+    def __init__(self):
+        self.user_board = Board()
+        self.ai_board = Board(True)
+        # self.ai_board = Board()  # ДЛЯ ДЕБАГГА, ПОСЛЕ ПРОВЕРКИ ЗАКОММЕНТИТЬ И РАСКОММЕНТИТЬ СТРОКУ ВЫШЕ
+        self.user = User(self.user_board, self.ai_board)
+        self.ai = AI(self.ai_board, self.user_board)
 
     def random_board(self, board, user=True):
         """Передать параметр bool = False если передается доска АИ"""
@@ -101,9 +107,10 @@ class Game:
                 #     break
 
                 i = 0
-                while True:
+                ship_placed = False
+                while not ship_placed:
                     i += 1
-                    if i > 9999:
+                    if i > 5000:
                         new_gen = True
                         break
 
@@ -114,6 +121,7 @@ class Game:
                     elif mode:
                         board.show()
                         if board.add_ship_manual(size):
+                            ship_placed = True
                             break
                         else:
                             continue
@@ -126,6 +134,7 @@ class Game:
                         direction = True if rnd in range(50) else False
 
                         if board.add_ship(head_dot=dot, length=size, direction=direction):
+                            ship_placed = True
                             break
             if not new_gen:  # Проверка на выход из генерации новой доски
                 break
@@ -163,7 +172,7 @@ class Game:
 
             print('Ходит Компудахтер!')
             while self.user_board.ships_count:
-                if not self.ai.move():
+                if not self.ai.move(False):
                     break
             if self.win_check(self.ai):
                 Game.winner('Компудахтер')
@@ -177,6 +186,12 @@ class Game:
         self.greet()
         self.random_board(self.user_board)
         self.random_board(self.ai_board, False)
+        self.loop()
+
+    def start_debug(self):
+        self.greet()
+        self.user_board.add_ship(Dot(1, 1), 3, True)
+        self.ai_board.add_ship(Dot(6, 1), 2, True)
         self.loop()
 
     @staticmethod
