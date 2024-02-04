@@ -7,12 +7,9 @@ from InnerLogic import *
 
 
 class Player:
-    _my_board = None
-    _enemy_board = None
-
-    def __init__(self, my_board, enemy_board):
-        self._my_board = my_board
-        self._enemy_board = enemy_board
+    def __init__(self, this_board, enemy_board):
+        self.this_board = this_board
+        self.enemy_board = enemy_board
 
     def ask(self):
         pass
@@ -21,7 +18,7 @@ class Player:
         while True:
             dot = self.ask()
             try:
-                if self._enemy_board.shot(dot):
+                if self.enemy_board.shot(dot):
                     break
             except TypeError:
                 print('Что то пошло не так в данных выстрела')
@@ -62,6 +59,7 @@ class User(Player):
 
 class Game:
     _ship_size_list = [3, 2, 2, 1, 1, 1, 1]
+    # _ship_size_list = [1, 1, 1, 1, 2, 2, 3]
 
     def __init__(self, user, user_board, ai, ai_board):
         self.user = user
@@ -69,8 +67,52 @@ class Game:
         self.ai = ai
         self.ai_board = ai_board
 
-    def random_board(self):
-        pass
+    def random_board(self, board, user=True):
+        mode = False  # Переменная для выбора как ставим корабли
+        new_gen = False
+        while True:  # Цикл полной генерации игровой доски
+            if new_gen:
+                board = Board() if user else Board(True)  # Новая доска для игрока
+            new_gen = False  # Триггер для выхода из генерации новой доски
+
+            if user:
+                mode = input('Будем ставить корабли вручную? Y/N ').lower()
+                mode = any([mode == x for x in ['y', 'да', '1', 'н']])
+
+            for size in self._ship_size_list:  # Пробуем ставить корабли каждого типоразмера
+                # if new_gen:
+                #     break
+
+                i = 0
+                while True:
+                    i += 1
+                    if i > 9999:
+                        new_gen = True
+                        break
+
+                    if mode and i > 3:  # Если ставим корабли вручную
+                        print('Превышено количество попыток для установки, давай заново)')
+                        new_gen = True
+                        break
+                    elif mode:
+                        board.show()
+                        if board.add_ship_manual(size):
+                            break
+                        else:
+                            continue
+                    else:  # Ставим рандомно
+                        x = random.randrange(1, 7)  # Генерируем точку куда ставим
+                        y = random.randrange(1, 7)
+                        dot = Dot(x, y)
+
+                        rnd = random.randrange(100)  # Случайно выбираем направление
+                        direction = True if rnd in range(50) else False
+
+                        if board.add_ship(head_dot=dot, length=size, direction=direction):
+                            break
+            if not new_gen:  # Проверка на выход из генерации новой доски
+                break
+            break
 
     @staticmethod
     def greet():
