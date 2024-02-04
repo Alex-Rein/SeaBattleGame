@@ -80,7 +80,6 @@ class User(Player):
 
 class Game:
     _ship_size_list = [3, 2, 2, 1, 1, 1, 1]
-    # _ship_size_list = [1, 1, 1, 1, 2, 2, 3]
 
     def __init__(self):
         self.user_board = Board()
@@ -103,9 +102,6 @@ class Game:
                 mode = any([mode == x for x in ['y', 'да', '1', 'н']])
 
             for size in self._ship_size_list:  # Пробуем ставить корабли каждого типоразмера
-                # if new_gen:
-                #     break
-
                 i = 0
                 ship_placed = False
                 while not ship_placed:
@@ -166,6 +162,8 @@ class Game:
                 if not self.user.move():
                     break
             if self.win_check(self.user):
+                print('Доска противника')
+                self.ai_board.show()
                 Game.winner('Игрок')
                 not_win = False
                 break
@@ -175,6 +173,7 @@ class Game:
                 if not self.ai.move(False):
                     break
             if self.win_check(self.ai):
+
                 Game.winner('Компудахтер')
                 not_win = False
                 break
@@ -198,21 +197,9 @@ class Game:
     def win_check(player):
         if player.enemy_board.ships_count == 0:
             return True
-        # for ship in player.enemy_board.fleet_list:
-        #     life = 0
-        #     for cell in ship.dots():
-        #         if cell.char == '■':
-        #             life += 1
-        #     ship.life = life
-        #     if ship.life == 0:
-        #         player.enemy_board.fleet_list.remove(ship)
-        #         player.enemy_board.ships_count -= 1
-        # if not player.enemy_board.ships_count:
-        #     return True
 
     @staticmethod
     def winner(player):
-        print(f'{player} победил!')
-
-
-# Доделать логику уничтожения кораблей и контура после потопления !!!
+        print()
+        print('Па-ба-ба-бам! Вражеский флот разбит!')
+        print(f'Великий генерал {player} победил!')

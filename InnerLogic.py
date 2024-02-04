@@ -2,7 +2,6 @@
 # игровая доска и вся логика связанная с ней. ■
 
 # direction для корабля проверяется упрощенно как значение bool. Чтобы не заморачиваться
-
 from Exceptions import *
 
 
@@ -253,7 +252,8 @@ class Board:
                 if cell == dot:
                     return ship
 
-    def damage_ship(self, ship):
+    @staticmethod
+    def damage_ship(ship):
         ship.life -= 1
         if ship.life == 0:
             return True
