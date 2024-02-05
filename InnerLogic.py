@@ -1,7 +1,8 @@
 # Внутренняя логика игры — корабли,
-# игровая доска и вся логика связанная с ней. ■
+# игровая доска и вся логика связанная с ней.
+# ■ X T O - используемые символы.
 
-# direction для корабля проверяется упрощенно как значение bool. Чтобы не заморачиваться
+# direction для корабля проверяется упрощенно как значение bool. Чтобы не заморачиваться :)
 from Exceptions import *
 
 
@@ -21,7 +22,8 @@ class Dot:
 
     @is_free.setter
     def is_free(self, value=bool):
-        self._is_free = value
+        if type(value) is bool:
+            self._is_free = value
 
     @property
     def char(self):
@@ -29,7 +31,7 @@ class Dot:
 
     @char.setter
     def char(self, value=str):
-        if any([value == x for x in ['X', 'T', 'O', '■']]):
+        if any([value == x for x in ['X', 'T', 'O', '■']]):  # Список доступных символов для доски
             self._char = value
 
     @property
@@ -67,16 +69,16 @@ class Ship:
 
 class Board:
     def __init__(self, hidden=False):
-        """Для компьютерного игрока нужно передать bool значение True"""
+        """Для компьютерного игрока нужно передать в параметр hidden значение True"""
         self._board_status = [[], [], [], [], [], []]
         self.fleet_list = []
         self._ships_count = 0
         self._hid = hidden
         x, y = 0, 0
-        for row in self._board_status:
+        for row in self._board_status:  # Заполнение доски дефолтными Dot объектами
             y += 1
             for col in range(6):
-                x += 1
+                x = col + 1
                 row.append(Dot(x, y))
 
     @property
@@ -95,13 +97,12 @@ class Board:
         """Возвращаем точку (Dot) с игровой доски по координатам входной точки (Dot)"""
         return self._board_status[dot.vals[1] - 1][dot.vals[0] - 1]
 
-    def add_ship(self, head_dot, length, direction):
+    def add_ship(self, ship):
         """Добавляем корабль на доску с заранее заданными параметрами. Возвращает True при успешной установке."""
-        while True:
-            success = False
+        while True:  # Общий цикл установки корабля
+            success = False  # bool для успешной установки корабля
             try:  # Пробуем разместить корабль по указанным координатам
-                ship = Ship(head_dot=head_dot, length=length, direction=direction)
-                place_approved = True
+                place_approved = True  # bool для доступности места размещения корабля на доске
                 for cell in ship.dots():  # Проверка доступности точек корабля на доске
                     if self.out(cell):
                         raise BoardOutException()
@@ -123,7 +124,7 @@ class Board:
             except TypeError as e:
                 print('Введены неправильные параметры корабля')
             else:
-                # Добавляем корабль на доску
+                # Если все ОК, "рисуем" корабль на доске, обновляем счетчик и список кораблей
                 for cell in ship.dots():
                     self.get_dot(cell).is_free = False
                     self.get_dot(cell).char = '■'
@@ -133,9 +134,9 @@ class Board:
             finally:
                 return success
 
-    def add_ship_manual(self, length):
-        """Добавляем корабль на доску вручную задавая параметры корабля.
-        ОСТОРОЖНО! Ситуация когда корабль невозможно поставить не обработана."""
+    @staticmethod
+    def add_ship_ask(length):
+        """Получаем параметры корабля от игрока"""
         while True:  # Цикл для проверки ввода координат
             print(f'Ставим корабль длины {length}')  # Собираем данные для создания корабля
             coords = input('Укажите координаты точки размещения через пробел: ').split()
@@ -159,44 +160,18 @@ class Board:
                 print(e)
                 continue
 
-        if length == 1:  # Проверяем направление упрощенно :)
+        if length == 1:  # Ставим направление упрощенно :)
             direction = True
         else:
             direction = input('Корабль ставим вертикально? Y/N  ').lower()
             direction = any([direction == x for x in ['y', 'да', '1', 'н']])
 
-        ship = Ship(head_dot, length, direction)
-        success = False
+        return Ship(head_dot, length, direction)
 
-        try:  # Пробуем разместить корабль по указанным координатам
-            place_approved = True
-            for cell in ship.dots():  # Проверка доступности точек корабля на доске
-                if self.out(cell):
-                    raise BoardOutException()
-                if place_approved:
-                    place_approved = self.get_dot(cell).is_free
-            for cell in self.contour(ship):  # Проверка доступности точек вокруг корабля
-                if self.out(cell):
-                    raise BoardOutException()
-                if place_approved:
-                    place_approved = self.get_dot(cell).is_free
-            if not place_approved:
-                raise ShipPlacementError
-        except BoardOutException as e:
-            print('Размещение вышло за границы доски')
-            print(e)
-        except ShipPlacementError:
-            print('Тут нельзя поставить. Что то уже стоит рядом.')
-        else:
-            # Добавляем корабль на доску
-            for cell in ship.dots():
-                self.get_dot(cell).is_free = False
-                self.get_dot(cell).char = '■'
-            self.fleet_list.append(ship)
-            self.ships_count += 1
-            success = True
-        finally:
-            return success
+    def add_ship_manual(self, length):
+        """Добавляем корабль на доску вручную задавая параметры корабля."""
+        ship = self.add_ship_ask(length)
+        return self.add_ship(ship)
 
     @staticmethod
     def contour(ship):
@@ -221,7 +196,7 @@ class Board:
             print(i, end=' ')
             i += 1
             for item in row:
-                if item.char == '■' and self.is_hidden():
+                if item.char == '■' and self.is_hidden():  # Прячем отображение кораблей для доски АИ
                     print(' O', end='')
                 else:
                     print(f' {item.char}', end='')
@@ -247,6 +222,7 @@ class Board:
             raise DotIsShottedError()
 
     def get_ship(self, dot):
+        """Поиск корабля во флоте по принадледжащей ему точке"""
         for ship in self.fleet_list:
             for cell in ship.dots():
                 if cell == dot:

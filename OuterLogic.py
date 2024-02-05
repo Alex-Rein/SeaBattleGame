@@ -20,14 +20,14 @@ class Player:
         while True:
             dot = self.ask()
             try:
-                if self.enemy_board.shot(dot):
+                if self.enemy_board.shot(dot):  # Стреляем и проверяем попали ли
                     print('Попал! Стреляем еще раз.')
                     ship = self.enemy_board.get_ship(dot)
-                    if self.enemy_board.damage_ship(ship):
+                    if self.enemy_board.damage_ship(ship):  # Проверяем уничтожен ли корабль, если да то...
                         print('Корабль противника уничтожен!')
-                        for dot in self.enemy_board.contour(ship):
+                        for dot in self.enemy_board.contour(ship):  # ... обводим...
                             self.enemy_board.get_dot(dot).char = 'T'
-                        self.enemy_board.ships_count -= 1
+                        self.enemy_board.ships_count -= 1  # ... и вычеркиваем
                         self.enemy_board.fleet_list.remove(ship)
                     add_move = True
             except TypeError:
@@ -56,7 +56,6 @@ class AI(Player):
 class User(Player):
     def ask(self):
         print('Координаты указываем через пробел.')
-        coords = None
         while True:  # Цикл для проверки ввода координат
             coords = input('Куда стреляем? ').split()
             try:
@@ -88,53 +87,66 @@ class Game:
         self.user = User(self.user_board, self.ai_board)
         self.ai = AI(self.ai_board, self.user_board)
 
-    def random_board(self, board, user=True):
+    def random_board(self, user=True):
         """Передать параметр bool = False если передается доска АИ"""
+        board = self.user_board if user else self.ai_board
         mode = False  # Переменная для выбора как ставим корабли
-        new_gen = False
-        while True:  # Цикл полной генерации игровой доски
+        new_gen = False  # bool для выхода из генерации новой доски
+        ask = True  # Нужно ли спрашивать про выбор расстановки доски
+        while True:  # Цикл генерации игровой доски, пока не сможем поставить все корабли
             if new_gen:
-                board = Board() if user else Board(True)  # Новая доска для игрока
-            new_gen = False  # Триггер для выхода из генерации новой доски
+                if user:  # Новая доска для игрока
+                    self.user_board = Board()
+                else:
+                    self.ai_board = Board(True)
+                board = self.user_board if user else self.ai_board
+                new_gen = False  # Выставляем новый цикл
 
-            if user:
-                mode = input('Будем ставить корабли вручную? Y/N ').lower()
-                mode = any([mode == x for x in ['y', 'да', '1', 'н']])
+            if user and ask:  # Выбор расстановки кораблей
+                while True:
+                    ans = input('\nБудем ставить корабли вручную? Y/N ').lower()
+                    if ans in ['y', 'да', '1', 'н', 'n', 'нет', '0', 'т']:
+                        break
+                    else:
+                        print('Неправильный ввод. Повторите еще раз.')
+                if any([ans == x for x in ['y', 'да', '1', 'н']]):
+                    mode = True
+                else:
+                    mode = False
+                    ask = False
 
             for size in self._ship_size_list:  # Пробуем ставить корабли каждого типоразмера
-                i = 0
-                ship_placed = False
-                while not ship_placed:
+                if new_gen:  # Проверка на выход для генерации новой доски
+                    break
+
+                i = 0  # количество попыток
+                while True:  # Цикл установки корабля
                     i += 1
                     if i > 5000:
                         new_gen = True
                         break
 
-                    if mode and i > 3:  # Если ставим корабли вручную
-                        print('Превышено количество попыток для установки, давай заново)')
+                    if mode and i > 3:  # Если не получилось разместить корабль 3 раза - сброс доски
+                        print('Превышено количество попыток для установки, давай заново)\n')
                         new_gen = True
                         break
-                    elif mode:
+                    elif mode:  # Ставим ручками
                         board.show()
                         if board.add_ship_manual(size):
-                            ship_placed = True
                             break
-                        else:
-                            continue
                     else:  # Ставим рандомно
                         x = random.randrange(1, 7)  # Генерируем точку куда ставим
                         y = random.randrange(1, 7)
                         dot = Dot(x, y)
-
                         rnd = random.randrange(100)  # Случайно выбираем направление
                         direction = True if rnd in range(50) else False
 
-                        if board.add_ship(head_dot=dot, length=size, direction=direction):
-                            ship_placed = True
+                        ship = Ship(head_dot=dot, length=size, direction=direction)
+                        if board.add_ship(ship):
                             break
-            if not new_gen:  # Проверка на выход из генерации новой доски
+
+            if not new_gen:  # ВАЖНЫЙ МОМЕНТ! Выход из цикла если все прошло успешно!
                 break
-            break
 
     @staticmethod
     def greet():
@@ -144,13 +156,14 @@ class Game:
         Другая же - доска противника, по которой будем стрелять.
         Размер игровой доски 6х6 поэтому координаты точки указываем через пробел в пределах от 1 до 6.
         Корабли ставятся вертикально(вниз) или горизонтально(вправо) от указанной точки.
+        Если не получится правильно поставить корабль за 3 попытки, то доска будет сброшена.
         Всего у каждого игрока кораблей будет 7. Один трехпалубный, 2 двухпалубных и 4 однопалубных.
-        Победит тот кто подобъет все первым.
+        Победит тот кто подобъет все вражеские корабли первым.
         Если игрок попадает по кораблю противника, он получает дополнительных ход.
         """)
 
     def loop(self):
-        print('Доска игрока')
+        print('\nДоска игрока')
         self.user_board.show()
         not_win = True
         while not_win:
@@ -183,14 +196,15 @@ class Game:
 
     def start(self):
         self.greet()
-        self.random_board(self.user_board)
-        self.random_board(self.ai_board, False)
+        self.random_board(True)
+        self.random_board(False)
         self.loop()
 
     def start_debug(self):
         self.greet()
-        self.user_board.add_ship(Dot(1, 1), 3, True)
-        self.ai_board.add_ship(Dot(6, 1), 2, True)
+        ship = Ship(Dot(1, 1), 3, True)
+        self.user_board.add_ship(ship)
+        self.ai_board.add_ship(ship)
         self.loop()
 
     @staticmethod
